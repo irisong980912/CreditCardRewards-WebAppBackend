@@ -55,13 +55,7 @@ UNIQUE KEY `transaction_name` (`transaction_name`)
 ```
 
 ### Step 2: Run Java WAR file
-1. create WAR file
 ```bash
-./mvnw install
-```
-Run the application by going into the target folder and find the .jar file. Run:
-```bash
-cd target
 java -jar credit-card-rewards-0.0.1-SNAPSHOT.jar
 ```
 ### Step 3: Send requests in PostMan
@@ -83,8 +77,6 @@ with JSON request body
 ```bash
 (GET) localhost:8080/transaction/monthly-reward-report?year=2021&month=05
 ```
-## Test Coverage
-go `target > site > jacoco` to find `index.html` and see the coverage report.
 
 ## About Reward Rules
 
