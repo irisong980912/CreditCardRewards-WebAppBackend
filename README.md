@@ -7,6 +7,9 @@ Participant name: [Xiaoqi Gao](https://drive.google.com/file/d/12F37lIn_6t7Qv3dn
 *Note: This is a backend web app.
 I also wrote a console app version, which is simpler without http requests, please see the other email attachment.
 
+## Skills Applied
+Java Spring Boot, Unit / Integration Testing, RESTful API
+
 ## Steps to Run
 ### Step 1: Build a local sql database
 1. Accessing sql commandline tool as the root user (Mac OS command line):
