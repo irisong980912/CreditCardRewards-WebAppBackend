@@ -55,9 +55,14 @@ UNIQUE KEY `transaction_name` (`transaction_name`)
 ```
 
 ### Step 2: Run Java WAR file
+1. create WAR file
+```bash
+./mvnw install
+```
 Run the application by going into the target folder and find the .jar file. Run:
 ```bash
- java -jar credit-card-rewards-0.0.1-SNAPSHOT.jar
+cd target
+java -jar credit-card-rewards-0.0.1-SNAPSHOT.jar
 ```
 ### Step 3: Send requests in PostMan
 1. Post a list of transactions
