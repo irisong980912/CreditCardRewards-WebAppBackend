@@ -1,15 +1,17 @@
 package com.xiaoqigao.creditcardrewards.enums;
 
+/**
+ * Customizes request status for exception handling
+ */
 public enum Status {
 
     OK(1200, "Successful Request."),
     MONTH_NO_TRANSACTIONS(1001, "No transactions were posted in the given month."),
-    TRANSACTION_NOT_FOUND(1002, "Cannot find transaction by the given id."),
-    WRONG_DATE_STRING_FORMAT(1003, "The date string representation is wrong."),
-    TRANSACTION_ALREADY_POSTED(1004, "Transaction with the same name has already been posted."),
-    NEGATIVE_AMOUNT_CENTS(1005, "Amount cents cannot be negative."),
-    MERCHANT_CODE_IS_NULL(1006, "Merchant code is null."),
-    TRANSACTION_NAME_IS_NULL(1007, "Transaction name is null.");
+    WRONG_DATE_STRING_FORMAT(1002, "The date string representation is wrong."),
+    TRANSACTION_ALREADY_POSTED(1003, "Transaction with the same name has already been posted."),
+    NEGATIVE_AMOUNT_CENTS(1004, "Amount cents cannot be negative."),
+    MERCHANT_CODE_IS_NULL(1005, "Merchant code is null."),
+    TRANSACTION_NAME_IS_NULL(1006, "Transaction name is null.");
 
     private int code;
     private String message;
@@ -19,10 +21,19 @@ public enum Status {
         this.message = message;
     }
 
+
+    /**
+     * Getter method for code
+     * @return status code
+     */
     public int getCode() {
         return code;
     }
 
+    /**
+     * Getter method for message
+     * @return status message
+     */
     public String getMessage() {
         return message;
     }

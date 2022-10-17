@@ -5,6 +5,11 @@ import org.apache.ibatis.annotations.*;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 
+/**
+ * Data access object that provides an abstract interface to `rewards` database
+ * Separates a data resource's client interface from its data access mechanisms.
+ * This isolation satisfy the "single responsibility" requirement.
+ */
 @Mapper
 @Repository
 public interface TransactionDAO {
@@ -15,16 +20,9 @@ public interface TransactionDAO {
     void insert(Transaction transaction);
 
     @Select("SELECT * FROM `transaction` WHERE post_year=#{postYear} AND post_month=#{postMonth}")
-    List<Transaction> selectByYearMonth
-            (@Param("postYear") String postYear, @Param("postMonth") String postMonth);
-
-    @Select("SELECT * FROM `transaction` WHERE id=#{id}")
-    Transaction selectOneByID(@Param("id") int id);
+    List<Transaction> selectByYearMonth(@Param("postYear") String postYear, @Param("postMonth") String postMonth);
 
     @Select("SELECT * FROM `transaction` WHERE transaction_name=#{transactionName}")
     List<Transaction> selectByTransactionName(@Param("transactionName") String transactionName);
-
-    @Delete("DELETE FROM `transaction`")
-    void deleteAll();
 
 }

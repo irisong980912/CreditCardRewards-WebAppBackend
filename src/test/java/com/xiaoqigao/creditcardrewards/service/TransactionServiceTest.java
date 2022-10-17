@@ -20,6 +20,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Unit test for TransactionService
+ */
 @ExtendWith(MockitoExtension.class)
 public class TransactionServiceTest {
 
@@ -29,6 +32,7 @@ public class TransactionServiceTest {
     @InjectMocks
     private TransactionService transactionService;
 
+    /** constants */
     private static final String TRANSACTION_NAME = "T01";
     private static final String DATE = "2021-05-01";
     private static final String POST_YEAR = "2021";
@@ -41,7 +45,9 @@ public class TransactionServiceTest {
     private static final String OUT_RANGE_DATE = "2021-05-58";
     private static final int NEGATIVE_AMOUNT_CENTS = -1000;
 
-
+    /**
+     * Success: Test for the behavious of successfully posting a list of transactions
+     */
     @Test
     public void testPostTrans_happyCase() throws Exception {
 
@@ -56,7 +62,9 @@ public class TransactionServiceTest {
         verify(this.transactionDAO).insert(any(Transaction.class));
     }
 
-
+    /**
+     * Exception thrown: wrong date format
+     */
     @Test
     public void testPostList_wrongDateStringFormat_transactionServiceExceptionThrown() {
         var transactionException = assertThrows(TransactionServiceException.class,
@@ -68,6 +76,9 @@ public class TransactionServiceTest {
 
     }
 
+    /**
+     * Exception thrown: wrong date range
+     */
     @Test
     public void testPostList_dateOutOfRange_transactionServiceExceptionThrown() {
         var transactionException = assertThrows(TransactionServiceException.class,
@@ -79,6 +90,9 @@ public class TransactionServiceTest {
 
     }
 
+    /**
+     * Exception thrown: negative amount cents
+     */
     @Test
     public void testPostList_negativeAmountCents_transactionServiceExceptionThrown(){
         var transactionException = assertThrows(TransactionServiceException.class,
@@ -90,6 +104,9 @@ public class TransactionServiceTest {
 
     }
 
+    /**
+     * Exception thrown: null merchant code
+     */
     @Test
     public void testPostList_nullMerchantCode_transactionServiceExceptionThrown() {
 
@@ -103,6 +120,9 @@ public class TransactionServiceTest {
 
     }
 
+    /**
+     * Exception thrown: null transaction name
+     */
     @Test
     public void testPostList_nullTransactionName_transactionServiceExceptionThrown() throws Exception{
 
@@ -115,6 +135,9 @@ public class TransactionServiceTest {
 
     }
 
+    /**
+     * Exception thrown: transactions already posted
+     */
     @Test
     public void testPostList_transactionAlreadyPosted_transactionServiceExceptionThrown() throws Exception{
 
@@ -140,8 +163,9 @@ public class TransactionServiceTest {
 
     }
 
-    // -----------
-
+    /**
+     * Success: get monthly transaction list
+     */
     @Test
     public void testGetMonthlyTransactionList_happyCase() throws Exception{
 
@@ -161,6 +185,9 @@ public class TransactionServiceTest {
         verify(this.transactionDAO).selectByYearMonth(POST_YEAR, POST_MONTH);
     }
 
+    /**
+     * Exception thrown: transaction not found
+     */
     @Test
     public void testGetMonthlyTransactionList_notFoundTransactionsGivenName_transactionServiceExceptionThrown() {
 
@@ -172,39 +199,5 @@ public class TransactionServiceTest {
         assertEquals(Status.MONTH_NO_TRANSACTIONS, transactionException.getStatus());
 
         verify(this.transactionDAO).selectByYearMonth(POST_YEAR, POST_MONTH);
-    }
-
-    // ====
-    @Test
-    public void testGetTransactionLevelPointByName_happyCase() throws Exception{
-
-        Transaction transaction = Transaction.builder()
-                .transactionName(TRANSACTION_NAME)
-                .postYear(POST_YEAR)
-                .postMonth(POST_MONTH)
-                .postDay(POST_DAY)
-                .merchantCode(MERCHANT_CODE)
-                .amountCents(AMOUNT_CENTS)
-                .build();
-        // create a list of transaction
-        when(this.transactionDAO.selectByTransactionName(TRANSACTION_NAME)).thenReturn(List.of(transaction));
-
-        this.transactionService.getTransactionLevelPointByName(TRANSACTION_NAME);
-
-        verify(this.transactionDAO).selectByTransactionName(TRANSACTION_NAME);
-
-    }
-
-    @Test
-    public void testGetTransactionLevelPointByName_transactionsNotFound_transactionServiceExceptionThrown() throws Exception{
-        when(this.transactionDAO.selectByTransactionName(TRANSACTION_NAME)).thenReturn(List.of());
-
-        var transactionException = assertThrows(TransactionServiceException.class,
-                () -> this.transactionService.getTransactionLevelPointByName(TRANSACTION_NAME));
-
-        assertEquals(Status.TRANSACTION_NOT_FOUND, transactionException.getStatus());
-
-        verify(this.transactionDAO).selectByTransactionName(TRANSACTION_NAME);
-
     }
 }

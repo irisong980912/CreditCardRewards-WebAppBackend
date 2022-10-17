@@ -5,18 +5,22 @@ import lombok.Value;
 
 import java.util.List;
 
+/**
+ * A response that represents the monthly rewards info
+ */
 @Value
 public class MonthlyReportResponse extends CommonResponse {
-
-    //  total points
-    // hashmap of transaction name: points
-
     private String year;
     private String month;
+
+    /** total maximum monthly rewards points */
     private int maximum_monthly_rewards_point;
+
+    /** a list of maximum rewards point for each transaction */
     private List<TransactionLevelPointResponse> transaction_level_points_list;
 
-    public MonthlyReportResponse(String year, String month, int maximum_monthly_rewards_point, List<TransactionLevelPointResponse> transaction_level_point_list) {
+    public MonthlyReportResponse(String year, String month, int maximum_monthly_rewards_point,
+                                 List<TransactionLevelPointResponse> transaction_level_point_list) {
         super(Status.OK);
         this.year = year;
         this.month = month;

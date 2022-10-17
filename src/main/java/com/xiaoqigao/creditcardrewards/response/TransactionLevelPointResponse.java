@@ -1,10 +1,12 @@
 package com.xiaoqigao.creditcardrewards.response;
 
-import com.xiaoqigao.creditcardrewards.enums.Status;
 import lombok.Value;
 
+/**
+ * A response that represents maximum point for each transaction
+ */
 @Value
-public class TransactionLevelPointResponse{
+public class TransactionLevelPointResponse {
 
     private String transaction_name;
     private int point;

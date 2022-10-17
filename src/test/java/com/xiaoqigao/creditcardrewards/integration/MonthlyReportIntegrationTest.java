@@ -21,6 +21,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+/**
+ * Integration test for calculating monthly report
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ExtendWith(SpringExtension.class)
@@ -32,33 +35,41 @@ public class MonthlyReportIntegrationTest {
     @Autowired
     private TestTransactionDAO testTransactionDAO;
 
+    /** constants */
+    private static final String YEAR = "2021";
+    private static final String MONTH = "05";
+
+    /**
+     * Cleans up old data in the test database `rewards-test` before each test
+     */
     @BeforeEach
     public void cleanUpOldData() {
         this.testTransactionDAO.deleteAll();
     }
 
-    private static final String YEAR = "2021";
-    private static final String MONTH = "05";
-
+    /**
+     * Success: Test for successfully calculate rewards report for the given month
+     */
     @Test
     public void testMonthlyRewardReport_happyCase() throws Exception {
 
         Transaction transaction = Transaction.builder()
-                .transactionName("T03")
+                .transactionName("T01")
                 .postYear("2021")
                 .postMonth("05")
                 .postDay("09")
-                .merchantCode("whatever")
-                .amountCents(1000)
+                .merchantCode("sportcheck")
+                .amountCents(2000)
                 .build();
+
         // insert directly
         this.testTransactionDAO.insert(transaction);
 
-        MvcResult result = this.mockMvc.perform(get("/transaction/monthly-reward-report") // http client
+        MvcResult result = this.mockMvc.perform(get("/transaction/monthly-reward-report")
                         .param("year", YEAR)
                         .param("month", MONTH))
                 .andExpect(status().isOk()) // HTTP status == 200
-                .andExpect(header().string("Content-Type", "application/json")) // Content-Type = ?
+                .andExpect(header().string("Content-Type", "application/json"))
                 .andExpect(jsonPath("$.code").value(Status.OK.getCode()))
                 .andExpect(jsonPath("$.message").value(Status.OK.getMessage()))
                 .andReturn();
@@ -68,14 +79,17 @@ public class MonthlyReportIntegrationTest {
         String exceptedResponse = "{\"code\":1200,\"message\":\"Successful Request.\"" +
                 ",\"year\":\"2021\"," +
                 "\"month\":\"05\"," +
-                "\"maximum_monthly_rewards_point\":10," +
+                "\"maximum_monthly_rewards_point\":75," +
                 "\"transaction_level_points_list\":[" +
-                "{\"transaction_name\":\"T03\",\"point\":10}" +
+                "{\"transaction_name\":\"T01\",\"point\":75}" +
                 "]}";
 
         assertEquals(exceptedResponse, actualResponse);
     }
 
+    /**
+     * Exception raised: Cannot calculate monthly report because there are no transactions in the given month.
+     */
     @Test
     public void testMonthlyRewardReport_noTransactions() throws Exception {
 
@@ -100,7 +114,13 @@ public class MonthlyReportIntegrationTest {
                 .andReturn();
     }
 
-    // ------------------ test for edge cases
+    /** ================================== start of test cases ================================== */
+    /**
+     * Test for edge case: when the transaction amountCents are all zero.
+     * [{"transaction_name": "T01", "date": "2021-05-09", "merchant_code" : "sportcheck", "amount_cents": 0},
+     * {"transaction_name": "T02", "date": "2021-05-10", "merchant_code" : "tim_hortons", "amount_cents": 0},
+     * {"transaction_name": "T03", "date": "2021-05-10", "merchant_code" : "subway", "amount_cents": 0}]
+     */
     @Test
     public void testMonthlyRewardReport_zeroCents() throws Exception { // apply rule4
         Transaction t1 = Transaction.builder()
@@ -125,11 +145,11 @@ public class MonthlyReportIntegrationTest {
         this.testTransactionDAO.insert(t2);
         this.testTransactionDAO.insert(t3);
 
-        MvcResult result = this.mockMvc.perform(get("/transaction/monthly-reward-report") // http client
+        MvcResult result = this.mockMvc.perform(get("/transaction/monthly-reward-report")
                         .param("year", YEAR)
                         .param("month", MONTH))
                 .andExpect(status().isOk()) // HTTP status == 200
-                .andExpect(header().string("Content-Type", "application/json")) // Content-Type = ?
+                .andExpect(header().string("Content-Type", "application/json"))
                 .andExpect(jsonPath("$.code").value(Status.OK.getCode()))
                 .andExpect(jsonPath("$.message").value(Status.OK.getMessage()))
                 .andReturn();
@@ -150,8 +170,77 @@ public class MonthlyReportIntegrationTest {
 
     }
 
+    /**
+     * Test for edge case: when there are transactions from different months.
+     * [{"transaction_name": "T01", "date": "2021-05-09", "merchant_code" : "sportcheck", "amount_cents": 2500},
+     * {"transaction_name": "T02", "date": "2021-05-10", "merchant_code" : "tim_hortons", "amount_cents": 1000},
+     * {"transaction_name": "T03", "date": "2021-05-10", "merchant_code" : "subway", "amount_cents": 1000},
+     * {"transaction_name": "T04", "date": "2020-01-10", "merchant_code" : "sportcheck", "amount_cents": 10000}]
+     */
     @Test
-    public void testMonthlyRewardReport_multipleMerchants() throws Exception { // apply rule4
+    public void testMonthlyRewardReport_differentMonths() throws Exception {
+        Transaction t1 = Transaction.builder()
+                .transactionName("T01")
+                .postYear("2021").postMonth("05").postDay("09")
+                .merchantCode("sportcheck").amountCents(2500)
+                .build();
+
+        Transaction t2 = Transaction.builder()
+                .transactionName("T02")
+                .postYear("2021").postMonth("05").postDay("09")
+                .merchantCode("tim_hortons").amountCents(1000)
+                .build();
+
+        Transaction t3 = Transaction.builder()
+                .transactionName("T03")
+                .postYear("2021").postMonth("05").postDay("09")
+                .merchantCode("subway").amountCents(1000)
+                .build();
+
+        Transaction t4 = Transaction.builder()
+                .transactionName("T04")
+                .postYear("2020").postMonth("01").postDay("09")
+                .merchantCode("sportscheck").amountCents(10000)
+                .build();
+        // insert directly
+        this.testTransactionDAO.insert(t1);
+        this.testTransactionDAO.insert(t2);
+        this.testTransactionDAO.insert(t3);
+        this.testTransactionDAO.insert(t4);
+
+        MvcResult result = this.mockMvc.perform(get("/transaction/monthly-reward-report")
+                        .param("year", YEAR)
+                        .param("month", MONTH))
+                .andExpect(status().isOk()) // HTTP status == 200
+                .andExpect(header().string("Content-Type", "application/json"))
+                .andExpect(jsonPath("$.code").value(Status.OK.getCode()))
+                .andExpect(jsonPath("$.message").value(Status.OK.getMessage()))
+                .andReturn();
+
+        String actualResponse = result.getResponse().getContentAsString();
+
+        String exceptedResponse = "{\"code\":1200," +
+                "\"message\":\"Successful Request.\"," +
+                "\"year\":\"2021\",\"month\":\"05\"," +
+                "\"maximum_monthly_rewards_point\":150," +
+                "\"transaction_level_points_list\":[" +
+                "{\"transaction_name\":\"T01\",\"point\":80}," +
+                "{\"transaction_name\":\"T02\",\"point\":10}," +
+                "{\"transaction_name\":\"T03\",\"point\":10}" +
+                "]}";
+
+        assertEquals(exceptedResponse, actualResponse);
+
+    }
+
+    /**
+     * Test for edge case: when there are transactions from multiple merchants.
+     * [{"transaction_name": "T01", "date": "2021-05-09", "merchant_code" : "sportcheck", "amount_cents": 2500},
+     * {"transaction_name": "T02", "date": "2021-05-10", "merchant_code" : "tim_hortons", "amount_cents": 1000},
+     * {"transaction_name": "T03", "date": "2021-05-10", "merchant_code" : "subway", "amount_cents": 1000}]
+     */
+    @Test
+    public void testMonthlyRewardReport_multipleMerchants() throws Exception {
         Transaction t1 = Transaction.builder()
                 .transactionName("T01")
                 .postYear("2021").postMonth("05").postDay("09")
@@ -174,11 +263,11 @@ public class MonthlyReportIntegrationTest {
         this.testTransactionDAO.insert(t2);
         this.testTransactionDAO.insert(t3);
 
-        MvcResult result = this.mockMvc.perform(get("/transaction/monthly-reward-report") // http client
+        MvcResult result = this.mockMvc.perform(get("/transaction/monthly-reward-report")
                         .param("year", YEAR)
                         .param("month", MONTH))
                 .andExpect(status().isOk()) // HTTP status == 200
-                .andExpect(header().string("Content-Type", "application/json")) // Content-Type = ?
+                .andExpect(header().string("Content-Type", "application/json"))
                 .andExpect(jsonPath("$.code").value(Status.OK.getCode()))
                 .andExpect(jsonPath("$.message").value(Status.OK.getMessage()))
                 .andReturn();
@@ -199,7 +288,12 @@ public class MonthlyReportIntegrationTest {
 
     }
 
-
+    /**
+     * Test for edge case: when there are transactions from multiple merchants and "other" merchants.
+     * [{"transaction_name": "T01", "date": "2021-05-09", "merchant_code" : "sportcheck", "amount_cents": 2500},
+     * {"transaction_name": "T02", "date": "2021-05-10", "merchant_code" : "tim_hortons", "amount_cents": 1000},
+     * {"transaction_name": "T03", "date": "2021-05-10", "merchant_code" : "whatever", "amount_cents": 500}]
+     */
     @Test
     public void testMonthlyRewardReport_hasOtherMerchants() throws Exception {
         Transaction t1 = Transaction.builder()
@@ -224,11 +318,11 @@ public class MonthlyReportIntegrationTest {
         this.testTransactionDAO.insert(t2);
         this.testTransactionDAO.insert(t3);
 
-        MvcResult result = this.mockMvc.perform(get("/transaction/monthly-reward-report") // http client
+        MvcResult result = this.mockMvc.perform(get("/transaction/monthly-reward-report")
                         .param("year", YEAR)
                         .param("month", MONTH))
                 .andExpect(status().isOk()) // HTTP status == 200
-                .andExpect(header().string("Content-Type", "application/json")) // Content-Type = ?
+                .andExpect(header().string("Content-Type", "application/json"))
                 .andExpect(jsonPath("$.code").value(Status.OK.getCode()))
                 .andExpect(jsonPath("$.message").value(Status.OK.getMessage()))
                 .andReturn();
@@ -248,6 +342,13 @@ public class MonthlyReportIntegrationTest {
         assertEquals(exceptedResponse, actualResponse);
     }
 
+    /**
+     * Test for edge case: when there are transactions from duplicated merchants
+     * [{"transaction_name": "T01", "date": "2021-05-09", "merchant_code" : "sportcheck", "amount_cents": 2500},
+     * {"transaction_name": "T02", "date": "2021-05-10", "merchant_code" : "sportcheck", "amount_cents": 10000},
+     * {"transaction_name": "T03", "date": "2021-05-10", "merchant_code" : "tim_hortons", "amount_cents": 2500},
+     * {"transaction_name": "T04", "date": "2021-05-10", "merchant_code" : "subway", "amount_cents": 2500}]
+     */
     @Test
     public void testMonthlyRewardReport_duplicateMerchants() throws Exception {
         Transaction t1 = Transaction.builder()
@@ -304,6 +405,14 @@ public class MonthlyReportIntegrationTest {
         assertEquals(exceptedResponse, actualResponse);
     }
 
+    /**
+     * Test for edge case: when there are duplicated merchants and cents remaining
+     * [{"transaction_name": "T01", "date": "2021-05-09", "merchant_code" : "sportcheck", "amount_cents": 2500},
+     * {"transaction_name": "T02", "date": "2021-05-10", "merchant_code" : "sportcheck", "amount_cents": 10068},
+     * {"transaction_name": "T03", "date": "2021-05-10", "merchant_code" : "tim_hortons", "amount_cents": 3550},
+     * {"transaction_name": "T04", "date": "2021-05-10", "merchant_code" : "subway", "amount_cents": 3558},
+     * {"transaction_name": "T04", "date": "2021-05-10", "merchant_code" : "whatever", "amount_cents": 1000}]
+     */
     @Test
     public void testMonthlyRewardReport_hasDuplicatedCentsRemaining() throws Exception {
         Transaction t1 = Transaction.builder()
@@ -343,11 +452,11 @@ public class MonthlyReportIntegrationTest {
         this.testTransactionDAO.insert(t4);
         this.testTransactionDAO.insert(t5);
 
-        MvcResult result = this.mockMvc.perform(get("/transaction/monthly-reward-report") // http client
+        MvcResult result = this.mockMvc.perform(get("/transaction/monthly-reward-report")
                         .param("year", YEAR)
                         .param("month", MONTH))
                 .andExpect(status().isOk()) // HTTP status == 200
-                .andExpect(header().string("Content-Type", "application/json")) // Content-Type = ?
+                .andExpect(header().string("Content-Type", "application/json"))
                 .andExpect(jsonPath("$.code").value(Status.OK.getCode()))
                 .andExpect(jsonPath("$.message").value(Status.OK.getMessage()))
                 .andReturn();
@@ -368,6 +477,9 @@ public class MonthlyReportIntegrationTest {
         assertEquals(exceptedResponse, actualResponse);
     }
 
+    /**
+     * Test for the case stated in the handout.
+     */
     @Test
     public void testMonthlyRewardReport_exampleTransactions() throws Exception {
         Transaction t1 = Transaction.builder()
@@ -442,11 +554,11 @@ public class MonthlyReportIntegrationTest {
         this.testTransactionDAO.insert(t9);
         this.testTransactionDAO.insert(t10);
 
-        MvcResult result = this.mockMvc.perform(get("/transaction/monthly-reward-report") // http client
+        MvcResult result = this.mockMvc.perform(get("/transaction/monthly-reward-report")
                         .param("year", YEAR)
                         .param("month", MONTH))
                 .andExpect(status().isOk()) // HTTP status == 200
-                .andExpect(header().string("Content-Type", "application/json")) // Content-Type = ?
+                .andExpect(header().string("Content-Type", "application/json"))
                 .andExpect(jsonPath("$.code").value(Status.OK.getCode()))
                 .andExpect(jsonPath("$.message").value(Status.OK.getMessage()))
                 .andReturn();
@@ -471,6 +583,7 @@ public class MonthlyReportIntegrationTest {
                 "]}";
         assertEquals(exceptedResponse, actualResponse);
     }
+    /** ================================== end of test cases ================================== */
 
 
 }

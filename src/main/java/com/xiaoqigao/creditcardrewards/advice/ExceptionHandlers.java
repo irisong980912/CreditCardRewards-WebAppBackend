@@ -11,6 +11,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @ControllerAdvice
 public class ExceptionHandlers {
 
+    /**
+     * Handles customized transaction service exceptions
+     * @return ResponseEntity<CommonResponse> customized response entity
+     */
     @ExceptionHandler(TransactionServiceException.class)
     @ResponseBody
     public ResponseEntity<CommonResponse> handleTransactionServiceException(TransactionServiceException exception) {
@@ -18,6 +22,10 @@ public class ExceptionHandlers {
         return new ResponseEntity<>(commonResponse, HttpStatus.BAD_REQUEST);
     }
 
+    /**
+     * If exceptions are failed to be caught by TransactionServiceException, will call ExceptionHandler.
+     * @return ResponseEntity<CommonResponse> customized response entity with 9999 status code
+     */
     @ExceptionHandler(Exception.class)
     @ResponseBody
     public ResponseEntity<CommonResponse> handleException(Exception exception) {

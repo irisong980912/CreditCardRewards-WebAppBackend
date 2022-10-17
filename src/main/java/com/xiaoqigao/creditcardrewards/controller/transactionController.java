@@ -18,21 +18,11 @@ public class transactionController {
     @Autowired
     private TransactionService transactionService;
 
-    @DeleteMapping("/")
-    public CommonResponse deleteAll() {
-        this.transactionService.deleteAll();
-
-        return new CommonResponse(Status.OK);
-    }
-
-    @PostMapping("/hello")
-    public String helloWorld(@RequestParam(required = false, defaultValue = "Alice") String name,
-                             @RequestHeader("User-Agent") String userAgent,
-                             @RequestBody String body) {
-        return "hello " + name + " from " + userAgent + " body: " + body;
-    }
-
-    // post multiple
+    /**
+     * A POST request for posting a list of transactions
+     * @param listTransRequest a list of PostTransRequest
+     * @return status OK
+     */
     @PostMapping("/post-list")
     public CommonResponse postListTransaction(@RequestBody List<PostTransRequest> listTransRequest) throws Exception {
 
@@ -46,18 +36,25 @@ public class transactionController {
 
         return new CommonResponse(Status.OK);
     }
+
+    /**
+     * A GET request for the reward point report given the year and month
+     * @param year posting year
+     * @param month posting month
+     * @return MonthlyReportResponse
+     */
     @GetMapping("/monthly-reward-report")
     public MonthlyReportResponse getMonthlyReport(@RequestParam(required = true) String year,
                                                   @RequestParam(required = true) String month) throws Exception {
 
-        int maxPoint =  this.transactionService.getMonthlyMaxPoint(year, month);
+
         List<Transaction> transactionList = this.transactionService.getMonthlyTransactionList(year, month);
+        int maxPoint =  this.transactionService.getMonthlyMaxPoint(transactionList);
 
         List<TransactionLevelPointResponse> levelPointList = new ArrayList<>();
         for (Transaction transaction : transactionList) {
-            String transactionName = transaction.getTransactionName();
-            int maxLevelPoint =  this.transactionService.getTransactionLevelPointByName(transactionName);
-            levelPointList.add( new TransactionLevelPointResponse(transactionName, maxLevelPoint));
+            int maxLevelPoint =  transaction.calculateTransLevelPoints();
+            levelPointList.add( new TransactionLevelPointResponse(transaction.getTransactionName(), maxLevelPoint));
         }
 
         return new MonthlyReportResponse(year, month, maxPoint, levelPointList);

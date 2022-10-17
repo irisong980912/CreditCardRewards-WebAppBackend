@@ -4,6 +4,9 @@ import com.xiaoqigao.creditcardrewards.enums.Status;
 
 import lombok.Data;
 
+/**
+ * A common response that handles response status.
+ */
 @Data
 public class CommonResponse {
     int code;

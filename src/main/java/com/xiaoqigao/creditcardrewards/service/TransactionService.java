@@ -11,16 +11,20 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 
-
 @Service
 public class TransactionService {
 
+    /** Dependency Injection */
     @Autowired
     TransactionDAO transactionDAO;
 
-    public void deleteAll() {
-        this.transactionDAO.deleteAll();
-    }
+    /**
+     * Post one transaction.
+     * @param transactionName
+     * @param dateString
+     * @param merchantCode
+     * @param amountCents
+     */
     public void postOneTransaction(String transactionName, String dateString, String merchantCode, int amountCents) throws Exception {
 
         // check if the transactionName is unique
@@ -38,11 +42,12 @@ public class TransactionService {
         // separate the date string
         String dateParts[] = dateString.split("-");
 
-        // Getting day, month, and year
+        // get day, month, and year
         String year = dateParts[0];
         String month = dateParts[1];
         String day = dateParts[2];
 
+        // check if the given date is out of range
         if (Integer.valueOf(month) < 0 || Integer.valueOf(month) > 12
                 || Integer.valueOf(day) > 30 || Integer.valueOf(day) < 0) {
             throw new TransactionServiceException(Status.WRONG_DATE_STRING_FORMAT);
@@ -60,6 +65,7 @@ public class TransactionService {
             throw new TransactionServiceException(Status.TRANSACTION_NAME_IS_NULL);
         }
 
+        // build a new transaction
         Transaction newTrans = Transaction.builder().transactionName(transactionName)
                                                     .postYear(year)
                                                     .postMonth(month)
@@ -68,13 +74,17 @@ public class TransactionService {
                                                     .amountCents(amountCents)
                                                     .build();
 
-        // do not avoid duplicated transaction: a customer might purchase the same thing multiple times in a day
-
+        // insert the record into database
         this.transactionDAO.insert(newTrans);
 
 
     }
 
+    /**
+     * Get the monthly transaction list from the database based on year and month
+     * @param year
+     * @param month
+     */
     public List<Transaction> getMonthlyTransactionList(String year, String month) throws TransactionServiceException {
         // get a list of transactions by given month
         List<Transaction> transactionList = this.transactionDAO.selectByYearMonth(year, month);
@@ -87,40 +97,40 @@ public class TransactionService {
         return transactionList;
     }
 
-    // returns the maximum point for the given month
-    public int getMonthlyMaxPoint(String year, String month) throws TransactionServiceException {
+    /**
+     * Get the maximum point for the given month
+     * @param transactionList a list of monthly transaction
+     */
+    public int getMonthlyMaxPoint(List<Transaction> transactionList) {
 
-        // get a list of transactions by given month
-        List<Transaction> transactionList = getMonthlyTransactionList(year, month);
+        HashMap<String, Integer> map = aggregateMonthlyTrans(transactionList);
 
-        // calculate the maximum monthly award points in the given month
-        return maximumMonthlyPoint(transactionList);
+        int spAmt = map.getOrDefault(MerchantCode.SPORT_CHECK, 0); // sportscheck
+        int thAmt = map.getOrDefault(MerchantCode.TIM_HORTONS, 0);; // tim_hortons
+        int subwayAmt = map.getOrDefault(MerchantCode.SUBWAY, 0); // subway
+        int otherAmt = map.getOrDefault(MerchantCode.OTHER, 0);
+
+        // get the cents
+        int remainingCents = spAmt % 100 + thAmt % 100 + subwayAmt % 100 + otherAmt % 100;
+
+        // get the points earned based on rules
+        int rulePoints = maximizeMonthlyRecursive(spAmt / 100, thAmt / 100, subwayAmt / 100);
+
+        // add rule points, other points, and remaining cents together
+        return rulePoints + otherAmt / 100 + remainingCents / 100;
     }
 
-    public int getTransactionLevelPointByName(String transactionName) throws TransactionServiceException {
+    /** ================================== start of helper ================================== */
 
-        // get the transaction by transactionName such as T01
-        List<Transaction> transactionList = this.transactionDAO.selectByTransactionName(transactionName);
-        if (transactionList == null || transactionList.size() == 0) {
-            throw new TransactionServiceException(Status.TRANSACTION_NOT_FOUND);
-        }
-
-        Transaction transaction = transactionList.get(0);
-
-        boolean isSportCheck = transaction.getMerchantCode().equals(MerchantCode.SPORT_CHECK);
-
-        return transLevelPoints(transaction.getAmountCents() / 100, isSportCheck);
-    }
-
-    // ------------- below are helper functions for calculating maximumMonthlyPoint -------------
-
-    // push all the merchants stated in the reward rules to a list
-
+    /**
+     * A helper function that aggregates the monthly expenditure for each merchant.
+     * @param transactions
+     * @return a hashmap
+     */
     private HashMap<String, Integer> aggregateMonthlyTrans(List<Transaction> transactions) {
 
-        List<String> merchantsForReward = MerchantCode.makeRewardMerchantList();
+        List<String> merchantsForReward = MerchantCode.makeRewardMerchantList(); // gets a list of all the merchants mentioned in the rules
 
-        // 1. prepare a list of all the merchantCodes -> dfs seen
         HashMap<String, Integer> result = new HashMap<>();
 
         for (Transaction t : transactions) {
@@ -135,49 +145,21 @@ public class TransactionService {
             int newAmountCents = result.getOrDefault(merchantCode, 0) + t.getAmountCents();
             result.put(merchantCode, newAmountCents);
 
-
-            System.out.println("-------- aggregateMonthlyTrans --------");
-            System.out.println("merchantCode: " + merchantCode + " newAmountCents: " + newAmountCents);
-            System.out.println("--------------------");
-            System.out.println("");
-
-
         }
 
         return result;
     }
 
-    private int maximumMonthlyPoint(List<Transaction> transactions) {
-
-        HashMap<String, Integer> map = aggregateMonthlyTrans(transactions);
-
-        int spAmt = map.getOrDefault(MerchantCode.SPORT_CHECK, 0); // sports check
-        int thAmt = map.getOrDefault(MerchantCode.TIM_HORTONS, 0);; // timHortons
-        int subwayAmt = map.getOrDefault(MerchantCode.SUBWAY, 0); // subway
-        int otherAmt = map.getOrDefault(MerchantCode.OTHER, 0);
-
-        // get the cents
-        int remainingCents = spAmt % 100 + thAmt % 100 + subwayAmt % 100 + otherAmt % 100;
-
-        System.out.println("-------- maixmumMonthlyPoint --------");
-        System.out.println("before spAmt: " + spAmt + " thAmt: " + thAmt + " subwayAmt: " + subwayAmt);
-        System.out.println("after spAmt: " + spAmt / 100 + " thAmt: " + thAmt / 100 + " subwayAmt: " + subwayAmt / 100);
-        System.out.println("demical: " + remainingCents);
-        System.out.println("otherAmt: " + otherAmt / 100);
-        System.out.println("--------------------");
-        System.out.println("");
-
-        // then dp: maximize the point. only need to see the integer
-        int rulePoints = maximizeMonthlyRecursive(spAmt / 100, thAmt / 100, subwayAmt / 100);
-
-        System.out.println("resulting points except other and decimal: " + rulePoints);
-
-        return rulePoints + otherAmt / 100 + remainingCents / 100;
-    }
-
-    // a greedy algorithm for calculating the maximum points earned for the month
-    // rule 3 and 5 are eliminated because they are not as cost-efficient as other combination rules. For more details,
-    // please go to readme.md
+    /**
+     * A greedy helper function for calculating the maximum points earned for the month
+     * Rule 3 and Rule 5 are eliminated because they are not as cost-efficient as other rules combined.
+     * For reasons of elimination, please refer to README.md
+     *
+     * @param spAmt dollar amount left for sportcheck
+     * @param thAmt dollar amount left for tim-hortons
+     * @param subwayAmt dollar amount left for subway
+     * @return maximum monthly reward point
+     */
     private int maximizeMonthlyRecursive(int spAmt, int thAmt, int subwayAmt) {
         // base case: all of them are 0
         if ((spAmt == 0) && (thAmt == 0) && (subwayAmt == 0)) {
@@ -186,66 +168,32 @@ public class TransactionService {
 
         int points;
 
-        if (spAmt >= 75 && thAmt >= 25 && subwayAmt >= 25) { // rule 1: 500 points for sportcheck 75,  timHortons $25, subway $25
+        if (spAmt >= 75 && thAmt >= 25 && subwayAmt >= 25) { // rule 1: 500 points for sportcheck $75,  timHortons $25, subway $25
 
-            System.out.println("rule 1------------");
             points = 500 + maximizeMonthlyRecursive(spAmt - 75, thAmt - 25, subwayAmt - 25);
 
+        } else if (spAmt >= 75 && thAmt >= 25 && subwayAmt < 25) { // rule 2: 300 points for sportcheck $75,  timHortons $25
 
-        } else if (spAmt >= 75 && thAmt >= 25 && subwayAmt < 25) { // rule 2: 300 points for sportcheck 75,  timHortons $25
-
-            System.out.println("rule 2------------");
             points = 300 + maximizeMonthlyRecursive(spAmt - 75, thAmt - 25, subwayAmt);
 
-        } else if (spAmt >= 25 && thAmt >= 10 && subwayAmt >= 10) { // rule 4: 150 points for sportcheck 25,  timHortons 10, subway 10
+        } else if (spAmt >= 25 && thAmt >= 10 && subwayAmt >= 10) { // rule 4: 150 points for sportcheck $25,  timHortons $10, subway $10
 
-            System.out.println("rule 4------------");
             points = 150 + maximizeMonthlyRecursive(spAmt - 25, thAmt - 10, subwayAmt - 10);
 
-        } else if (spAmt >= 20) { // rule 6: 75 points for sportcheck 20
+        } else if (spAmt >= 20) { // rule 6: 75 points for sportcheck $20
 
-            System.out.println("rule 6------------");
             points = 75 + maximizeMonthlyRecursive(spAmt - 20, thAmt, subwayAmt);
 
-        } else { // rule 7: 1 point for the remaining. base case
+        } else { // rule 7: 1 point for the remaining.
 
-            System.out.println("rule 7------------");
             points = spAmt + thAmt + subwayAmt;
 
         }
 
-        System.out.println("spAmt: " + spAmt + " thAmt: " + thAmt + " subwayAmt: " + subwayAmt);
-        System.out.println("points: " + points);
-        System.out.println(" ");
         return points;
 
     }
 
-    // ------------- below are helper functions for calculating individualTransPoints -------------
-    private int transLevelPoints(int amountDollar, boolean isSportCheck) {
-        // base case: all of them are 0
-
-        int points = 0;
-
-        if ((amountDollar >= 20) && isSportCheck) { // rule 6: 75 points for sportcheck 20
-
-            System.out.println("individualTransPoints rule 6------------" + amountDollar);
-            points = 75 + transLevelPoints(amountDollar - 20, true);
-
-        } else{
-
-            points = amountDollar;
-
-        }
-
-        return points;
-
-    }
-
-
-
-
-
-
+    /** ================================== end of helper ================================== */
 
 }

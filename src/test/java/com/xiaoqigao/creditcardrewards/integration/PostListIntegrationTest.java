@@ -20,6 +20,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
+/**
+ * Integration test for posting a list of monthly transactions
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ExtendWith(SpringExtension.class)
@@ -31,11 +34,17 @@ public class PostListIntegrationTest {
     @Autowired
     private TestTransactionDAO testTransactionDAO;
 
+    /**
+     * Cleans up old data in the test database `rewards-test` before each test
+     */
     @BeforeEach
     public void cleanUpOldData() {
         this.testTransactionDAO.deleteAll();
     }
 
+    /**
+     * Success: Test for successfully posting a list of transactions
+     */
     @Test
     public void testPostList_happyCase() throws Exception {
 
@@ -44,20 +53,22 @@ public class PostListIntegrationTest {
                 "\"merchant_code\" : \"sportcheck\", " +
                 "\"amount_cents\": 2550}]";
 
-        this.mockMvc.perform(post("/transaction/post-list") // http client
+        // mockMVC post the request
+        this.mockMvc.perform(post("/transaction/post-list")
                         .content(requestBody)
                         .contentType("application/json"))
                 .andExpect(status().isOk()) // HTTP status == 200
-                .andExpect(header().string("Content-Type", "application/json")) // Content-Type = ?
+                .andExpect(header().string("Content-Type", "application/json"))
                 .andExpect(jsonPath("$.code").value(Status.OK.getCode()))
                 .andExpect(jsonPath("$.message").value(Status.OK.getMessage()));
 
-
         List<Transaction> transactions = this.testTransactionDAO.selectByTransactionName("T01");
-        assertNotNull(transactions); // users != null
+        assertNotNull(transactions);
         assertEquals(1, transactions.size()); // expected, actual
 
         Transaction transaction = transactions.get(0);
+
+        // check if the fields are matching
         assertEquals("T01", transaction.getTransactionName());
         assertEquals("2021", transaction.getPostYear());
         assertEquals("05", transaction.getPostMonth());
@@ -66,6 +77,9 @@ public class PostListIntegrationTest {
         assertEquals(2550, transaction.getAmountCents());
     }
 
+    /**
+     * Exception thrown: wrong date format
+     */
     @Test
     public void testPostList_wrongDateStringFormat() throws Exception {
 
@@ -78,7 +92,7 @@ public class PostListIntegrationTest {
                         .content(requestBody)
                         .contentType("application/json"))
                 .andExpect(status().isBadRequest()) // HTTP status == 500
-                .andExpect(header().string("Content-Type", "application/json")) // Content-Type = ?
+                .andExpect(header().string("Content-Type", "application/json"))
                 .andExpect(jsonPath("$.code").value(Status.WRONG_DATE_STRING_FORMAT.getCode()))
                 .andExpect(jsonPath("$.message").value(Status.WRONG_DATE_STRING_FORMAT.getMessage()));
 
@@ -88,6 +102,9 @@ public class PostListIntegrationTest {
         assertTrue(transactions.isEmpty()); // should not add to database
     }
 
+    /**
+     * Exception thrown: wrong date range
+     */
     @Test
     public void testPostList_dateOutOfRange() throws Exception {
 
@@ -100,7 +117,7 @@ public class PostListIntegrationTest {
                         .content(requestBody)
                         .contentType("application/json"))
                 .andExpect(status().isBadRequest()) // HTTP status == 500
-                .andExpect(header().string("Content-Type", "application/json")) // Content-Type = ?
+                .andExpect(header().string("Content-Type", "application/json"))
                 .andExpect(jsonPath("$.code").value(Status.WRONG_DATE_STRING_FORMAT.getCode()))
                 .andExpect(jsonPath("$.message").value(Status.WRONG_DATE_STRING_FORMAT.getMessage()));
 
@@ -110,6 +127,9 @@ public class PostListIntegrationTest {
         assertTrue(transactions.isEmpty()); // should not add to database
     }
 
+    /**
+     * Exception thrown: negative amount cents
+     */
     @Test
     public void testPostList_negativeAmountCents() throws Exception {
 
@@ -122,7 +142,7 @@ public class PostListIntegrationTest {
                         .content(requestBody)
                         .contentType("application/json"))
                 .andExpect(status().isBadRequest()) // HTTP status == 500
-                .andExpect(header().string("Content-Type", "application/json")) // Content-Type = ?
+                .andExpect(header().string("Content-Type", "application/json"))
                 .andExpect(jsonPath("$.code").value(Status.NEGATIVE_AMOUNT_CENTS.getCode()))
                 .andExpect(jsonPath("$.message").value(Status.NEGATIVE_AMOUNT_CENTS.getMessage()));
 
@@ -132,6 +152,9 @@ public class PostListIntegrationTest {
         assertTrue(transactions.isEmpty()); // should not add to database
     }
 
+    /**
+     * Exception thrown: null merchant code
+     */
     @Test
     public void testPostList_nullMerchantCode() throws Exception {
 
@@ -154,6 +177,9 @@ public class PostListIntegrationTest {
         assertTrue(transactions.isEmpty()); // should not add to database
     }
 
+    /**
+     * Exception thrown: null transaction name
+     */
     @Test
     public void testPostList_nullTransactionName() throws Exception {
 
@@ -176,6 +202,9 @@ public class PostListIntegrationTest {
         assertTrue(transactions.isEmpty()); // should not add to database
     }
 
+    /**
+     * Exception thrown: transactions already posted
+     */
     @Test
     public void testPostList_transactionAlreadyPosted() throws Exception {
 
@@ -187,7 +216,7 @@ public class PostListIntegrationTest {
                 .merchantCode("whatever")
                 .amountCents(1000)
                 .build();
-        // insert directly
+        // insert one record first
         this.testTransactionDAO.insert(transaction);
 
         var requestBody = "[{\"transaction_name\": \"T03\", " +
@@ -199,7 +228,7 @@ public class PostListIntegrationTest {
                         .content(requestBody)
                         .contentType("application/json"))
                 .andExpect(status().isBadRequest()) // HTTP status == 500
-                .andExpect(header().string("Content-Type", "application/json")) // Content-Type = ?
+                .andExpect(header().string("Content-Type", "application/json"))
                 .andExpect(jsonPath("$.code").value(Status.TRANSACTION_ALREADY_POSTED.getCode()))
                 .andExpect(jsonPath("$.message").value(Status.TRANSACTION_ALREADY_POSTED.getMessage()));
 
