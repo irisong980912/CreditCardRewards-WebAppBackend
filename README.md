@@ -2,11 +2,14 @@
 
 Technical assessment for Capital One Software Engineering, Full-Time 2023 position.
 
-Tester name: [Xiaoqi Gao](https://drive.google.com/file/d/12F37lIn_6t7Qv3dn-f5hZFQw8FCC6Pyf/view?usp=sharing)
+Participant name: [Xiaoqi Gao](https://drive.google.com/file/d/12F37lIn_6t7Qv3dn-f5hZFQw8FCC6Pyf/view?usp=sharing)
+
+*Note: This is a backend web app.
+I also wrote a console app version, which is simpler without http requests, please see the other email attachment.
 
 ## Steps to Run
 ### Step 1: Build a local sql database
-1. Accessing sql commandline tool as the root user:
+1. Accessing sql commandline tool as the root user (Mac OS command line):
 ```bash
 /usr/local/mysql/bin/mysql -u root -p
 ```
@@ -32,7 +35,7 @@ CREATE TABLE `transaction` (
 UNIQUE KEY `transaction_name` (`transaction_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
-3. Similarly, for testing purposes, Build a database `reward-test`, and a table `transaction` using the following statements:
+3. Similarly, for testing purposes, build a database `reward-test`, and a table `transaction` using the following statements:
 
 ```bash
 CREATE DATABASE `rewards-test`;
@@ -54,7 +57,7 @@ UNIQUE KEY `transaction_name` (`transaction_name`)
 ### Step 2: Run Java WAR file
 Run the application by going into the target folder and find the .jar file. Run:
 ```bash
- java -jav credit-card-rewards-0.0.1-SNAPSHOT.jar
+ java -jar credit-card-rewards-0.0.1-SNAPSHOT.jar
 ```
 ### Step 3: Send requests in PostMan
 1. Post a list of transactions
@@ -65,11 +68,9 @@ Run the application by going into the target folder and find the .jar file. Run:
 with JSON request body
 
 ```bash
-[
-{"transaction_name": "T07", "date": "2021-05-09", "merchant_code" : "sportcheck", "amount_cents": 2550},
-{"transaction_name": "T05", "date": "2021-05-10", "merchant_code" : "tim_hortons", "amount_cents": 1050},
-{"transaction_name": "T06", "date": "2021-05-10", "merchant_code" : "subway", "amount_cents": 1100}
-]
+[{"transaction_name": "T01", "date": "2021-05-09", "merchant_code" : "sportcheck", "amount_cents": 2550},
+{"transaction_name": "T02", "date": "2021-05-10", "merchant_code" : "tim_hortons", "amount_cents": 1050},
+{"transaction_name": "T03", "date": "2021-05-10", "merchant_code" : "subway", "amount_cents": 1100}]
 ```
 
 2. Get the monthly rewards info
@@ -85,17 +86,15 @@ go `target > site > jacoco` to find `index.html` and see the coverage report.
 After calculation, I found that Rule 3 and Rule 5 are less cost-efficient than a combination of Rule 6 and Rule 7.
 Therefore, I did not consider them when calculating the maximum monthly reward point.
 
-### Why Rule 3?
+### Why Eliminate Rule 3?
 Rule 3: 200 points for every $75 spend at Sport Check
 
 which can be substituted by 3 * Rule 6 + 15 * Rule 7 = 3 * 75 + 15 = 240 points
 
-### Why Rule 5?
+### Why Eliminate Rule 5?
 Rule 5: 75 points for every $25 spend at Sport Check, $10 spend at Tim Hortons
 
 which can be substituted by 1 * Rule 6 + 15 * Rule 7 = 75 + 15 = 90 points
 
 ## Finally
 Thank you for taking the time reviewing my submission!
-For the console app version, which is simpler without http requests, please see the other email attachment.
-

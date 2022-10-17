@@ -1,8 +1,6 @@
 package com.xiaoqigao.creditcardrewards.service;
 
-import com.xiaoqigao.creditcardrewards.DAO.TestTransactionDAO;
 import com.xiaoqigao.creditcardrewards.DAO.TransactionDAO;
-import com.xiaoqigao.creditcardrewards.constant.MerchantCode;
 import com.xiaoqigao.creditcardrewards.enums.Status;
 import com.xiaoqigao.creditcardrewards.exception.TransactionServiceException;
 import com.xiaoqigao.creditcardrewards.model.Transaction;
