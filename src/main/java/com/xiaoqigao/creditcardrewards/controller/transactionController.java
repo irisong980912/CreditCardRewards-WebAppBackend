@@ -1,6 +1,7 @@
 package com.xiaoqigao.creditcardrewards.controller;
 
 import com.xiaoqigao.creditcardrewards.enums.Status;
+import com.xiaoqigao.creditcardrewards.model.RewardsReport;
 import com.xiaoqigao.creditcardrewards.model.Transaction;
 import com.xiaoqigao.creditcardrewards.request.PostTransRequest;
 import com.xiaoqigao.creditcardrewards.response.*;
@@ -8,7 +9,6 @@ import com.xiaoqigao.creditcardrewards.service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -49,15 +49,9 @@ public class transactionController {
 
 
         List<Transaction> transactionList = this.transactionService.getMonthlyTransactionList(year, month);
-        int maxPoint =  this.transactionService.getMonthlyMaxPoint(transactionList);
+        RewardsReport rewardsReport = this.transactionService.getMonthlyRewardsReport(transactionList);
 
-        List<TransactionLevelPointResponse> levelPointList = new ArrayList<>();
-        for (Transaction transaction : transactionList) {
-            int maxLevelPoint =  transaction.calculateTransLevelPoints();
-            levelPointList.add( new TransactionLevelPointResponse(transaction.getTransactionName(), maxLevelPoint));
-        }
-
-        return new MonthlyReportResponse(year, month, maxPoint, levelPointList);
+        return new MonthlyReportResponse(year, month, rewardsReport.getMonthlyRewardsPoint(), levelPointList);
 
     }
 }

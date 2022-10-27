@@ -7,46 +7,47 @@ import lombok.Value;
 @Value
 @Builder
 public class Transaction {
-    /** primary key */
-    int id;
+    private String transactionName;
+    private String date;
+    private String merchantCode;
+    private int amountCents;
+    private TransactionLevelRule rule = null;
 
-    /** unique key */
-    String transactionName;
+    public Transaction(String transactionName, String date, String merchantCode, int amountCents) {
+        this.transactionName = transactionName;
+        this.date = date;
+        this.merchantCode = merchantCode;
+        this.amountCents = amountCents;
 
-    /**  separate date for easier retrieval of monthly transactions */
-    String postYear;
-    String postMonth;
-    String postDay;
-    String merchantCode;
-    int amountCents;
-
-    /**
-     * A recursive helper function that helps calculate rewards based on Rule 6 and 7
-     * @param amountDollar amountCents / 100
-     * @param isSportCheck is the transaction completed at sportcheck
-     * @return transaction level points
-     */
-    private int transLevelPointsHelper(int amountDollar, boolean isSportCheck) {
-        int points;
-
-        if ((amountDollar >= 20) && isSportCheck) { // rule 6: 75 points for $20 sportcheck
-            points = 75 + transLevelPointsHelper(amountDollar - 20, true);
-
-        } else{
-            points = amountDollar;
-        }
-
-        return points;
+        setRule();
     }
 
-    /**
-     * A function that helps calculate rewards based on Rule 6 and 7
-     * @return transaction level points
-     */
-    public int calculateTransLevelPoints() {
+    private void setRule() {
+        // set the rule for this transaction
+        if (this.merchantCode.equals(MerchantCode.SPORT_CHECK)) {
+            this.rule = SportcheckRule.getInstance();
+        } else {
+            this.rule = OtherRule.getInstance();
+        }
+    }
 
-        return transLevelPointsHelper(this.amountCents / 100,
-                this.merchantCode.equals(MerchantCode.SPORT_CHECK));
+    public TransactionLevelPoint getTransactionLevelPoint() {
+        // calculate the point
+        int levelPoint = this.rule.calculatePoint(this);
+        TransactionLevelPoint transactionLevelPoint = new TransactionLevelPoint(
+                this.transactionName,
+                levelPoint);
 
+        return transactionLevelPoint;
+    }
+
+    @Override
+    public String toString() {
+        return "Transaction{" +
+                "transactionName='" + transactionName + '\'' +
+                ", date='" + date + '\'' +
+                ", merchantCode='" + merchantCode + '\'' +
+                ", amountCents=" + amountCents +
+                '}';
     }
 }
